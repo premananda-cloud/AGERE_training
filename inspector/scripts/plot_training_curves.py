@@ -1,48 +1,27 @@
 import os
-import glob
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# Paths relative to project root (~/projects/AGERE/)
-PARSED_DIR = "results/training/tb_parsed"
-OUT_DIR = "results/training/aggregated"
+# Paths (adjust if your CSV is saved elsewhere)
+INPUT_CSV = "results/training/aggregated/all_seeds_training.csv"
 PLOT_DIR = "inspector/plots/training_curves"
 
 def main():
-    # Ensure output directories exist
-    os.makedirs(OUT_DIR, exist_ok=True)
+    # Ensure output directory exists
     os.makedirs(PLOT_DIR, exist_ok=True)
     
-    # 1. Load all parsed CSVs
-    csv_files = glob.glob(os.path.join(PARSED_DIR, "*_scalars.csv"))
-    if not csv_files:
-        print(f"ERROR: No CSV files found in {PARSED_DIR}")
+    # 1. Load the aggregated long-format CSV
+    if not os.path.exists(INPUT_CSV):
+        print(f"ERROR: Could not find {INPUT_CSV}")
+        print("Please ensure the parsing script was run and the file is in the correct location.")
         return
-    
-    print(f"Loading {len(csv_files)} seed files...")
-    dfs = []
-    for f in csv_files:
-        seed_name = os.path.basename(f).replace("_scalars.csv", "")
-        df = pd.read_csv(f)
-        df['seed'] = seed_name
-        dfs.append(df)
         
-    # Combine into one dataframe
-    df_all = pd.concat(dfs, ignore_index=True)
-    
-    # FIX: The CSVs are in wide format (tags are columns). We need to melt them 
-    # back into long format (step, seed, tag, value) for seaborn plotting.
-    id_vars = ['step', 'seed']
-    value_vars = [col for col in df_all.columns if col not in id_vars]
-    df_long = df_all.melt(id_vars=id_vars, value_vars=value_vars, var_name='tag', value_name='value')
-    
-    # Save aggregated raw data for reproducibility (reviewers love this)
-    agg_path = os.path.join(OUT_DIR, "all_seeds_training.csv")
-    df_long.to_csv(agg_path, index=False)
-    print(f"Saved aggregated data to: {agg_path}")
+    print(f"Loading data from {INPUT_CSV}...")
+    df = pd.read_csv(INPUT_CSV)
     
     # 2. Define the key metrics to plot for the paper
+    # These directly address the reviewer's request for training stability and variability
     metrics_to_plot = [
         'rollout/ep_rew_mean',
         'rollout/ep_len_mean',
@@ -51,9 +30,9 @@ def main():
     ]
     
     # Filter dataframe to only these metrics
-    df_plot = df_long[df_long['tag'].isin(metrics_to_plot)].copy()
+    df_plot = df[df['tag'].isin(metrics_to_plot)].copy()
     
-    # 3. Configure plotting style for academic papers (clean, readable)
+    # 3. Configure plotting style for academic papers (clean, readable, no clutter)
     sns.set_theme(style="whitegrid", context="paper", font_scale=1.1)
     
     print("\nGenerating publication-ready plots...")
@@ -74,7 +53,7 @@ def main():
             y='value',
             errorbar=('ci', 95),  # 95% confidence interval
             linewidth=2.5,
-            color="#1f77b4" # Professional blue
+            color="#1f77b4" # Professional academic blue
         )
         
         # Clean up the title for readability
@@ -98,4 +77,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
