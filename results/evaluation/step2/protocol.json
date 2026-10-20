@@ -1,0 +1,96 @@
+{
+  "study_name": "step2",
+  "stage_preset": "disturbance_3x5",
+  "groups": {
+    "chain": {
+      "enabled": true,
+      "training_seed": 0,
+      "line_regex": "disturbance_3x5(?:_tiltfix\\d*)?"
+    },
+    "seedstudy": {
+      "enabled": true,
+      "tag": "seedstudy",
+      "training_seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "expected_hparams": {
+        "gamma": 0.995,
+        "ent_coef": 0.003
+      },
+      "expected_candidates_per_seed": 10
+    }
+  },
+  "screen": {
+    "episodes_per_cell": 4,
+    "base_seed": 10000,
+    "top_k": {
+      "chain": 10,
+      "seedstudy": 5
+    }
+  },
+  "select": {
+    "episodes_per_cell": 15,
+    "base_seed": 20000
+  },
+  "report": {
+    "episodes_per_cell": 20,
+    "base_seed": 30000,
+    "scope": "all"
+  },
+  "selection_rule": "Per unit (chain = one unit; seedstudy = one unit per training seed). Stage screen: rank the intermediate (candidate) checkpoints by overall crash rate on the balanced screen grid (tie-break: lower mean final position error, then later step); keep top_k. Stage select: evaluate those on the balanced select grid; champion = lowest crash rate (same tie-breaks). Final saves are baseline arms, never candidates. The report stage uses a fresh seed block and is not used for any selection. Every checkpoint is evaluated with the CURRENT task config (stage preset disturbance_3x5), recorded in this file.",
+  "task_config": {
+    "target_position": [
+      0.0,
+      0.0,
+      1.0
+    ],
+    "episode_len_sec": 8.0,
+    "reset_position_jitter": 0.3,
+    "reset_yaw_jitter_deg": 15.0,
+    "max_xy_distance": 1.5,
+    "max_altitude": 2.0,
+    "max_tilt_rad": 0.4,
+    "max_tilt_hold_steps": 6,
+    "position_error_weight": 1.0,
+    "velocity_penalty_weight": 0.05,
+    "action_smoothness_weight": 0.01,
+    "survival_bonus": 0.01,
+    "angular_velocity_penalty_weight": 0.02,
+    "disturbance_enabled": true,
+    "disturbance_types_active": [
+      "kick",
+      "torque",
+      "wind"
+    ],
+    "disturbance_kick_step_min": 60,
+    "disturbance_kick_step_max": 150,
+    "recovery_threshold_m": 0.2,
+    "recovery_hold_steps": 60,
+    "disturbance_kicks_per_episode": 1,
+    "disturbance_min_kick_spacing_steps": 30,
+    "disturbance_kick_min_mps": 0.1,
+    "disturbance_kick_max_mps": 0.3
+  },
+  "git": {
+    "commit": "5857b20722a85cc01ff1794ab470ab1a5cb75d6d",
+    "dirty": true
+  },
+  "versions": {
+    "python": "3.12.15",
+    "numpy": "2.5.4",
+    "torch": "2.14.1+cpu",
+    "stable_baselines3": "2.9.0",
+    "gymnasium": "1.4.0",
+    "pybullet": null
+  },
+  "created": "2026-10-20 18:59:48"
+}

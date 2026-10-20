@@ -1,0 +1,10 @@
+--extra-index-url https://download.pytorch.org/whl/cu126
+torch
+torchvision
+torchaudio
+gymnasium
+stable-baselines3[extra]
+git+https://github.com/learnsyslab/gym-pybullet-drones.git
+huggingface_hub
+safetensors
+wandb
