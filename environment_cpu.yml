@@ -9,6 +9,9 @@ dependencies:
   # which setuptools>=82 removed. Unpin when upstream drops it.
   - setuptools<82
 
+  # Make sure conda's libstdc++ is present (fixes CXXABI_1.3.15 not found on WSL/Ubuntu).
+  - libstdcxx-ng
+
   - pybullet=3.25 # pinned to match environment.yml (GPU) for consistent physics behavior
   - numpy
   - scipy
@@ -17,7 +20,7 @@ dependencies:
   - tqdm
   - tensorboard
   - pip:
-      # CPU-only build — no NVIDIA GPU on this machine.
+      # CPU-only build, no NVIDIA GPU on this machine.
       # For CUDA, see environment.yml.
       - --extra-index-url https://download.pytorch.org/whl/cpu
       - torch
@@ -30,3 +33,8 @@ dependencies:
       - huggingface_hub
       - safetensors
       - wandb
+
+# Safety net: make conda's libs win over the system ones.
+# Delete this block if the test below passes without it.
+variables:
+  LD_LIBRARY_PATH: $CONDA_PREFIX/lib:$LD_LIBRARY_PATH

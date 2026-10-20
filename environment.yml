@@ -5,16 +5,21 @@ dependencies:
   - python=3.12
   - pip
 
-  # setuptools>=82 removed pkg_resources, which gym-pybullet-drones still
-  # imports (BaseAviary.py). Keep this pin until upstream drops that import.
+  # gym-pybullet-drones still imports pkg_resources (BaseAviary.py);
+  # setuptools>=82 removed it. Drop this pin once upstream fixes that.
   - setuptools<82
 
+  # Compiled scientific libs come from conda-forge, NOT pip, so they link
+  # against conda's libstdc++ instead of the older system one (WSL/Ubuntu).
+  # pip's manylinux scipy wheel caused: CXXABI_1.3.15 not found.
+  - libstdcxx-ng
   - numpy
   - scipy
   - matplotlib
   - pyyaml
   - tqdm
   - tensorboard
+
   - pip:
       # PyTorch (CUDA 12.6 wheels)
       - --extra-index-url https://download.pytorch.org/whl/cu126
@@ -26,7 +31,7 @@ dependencies:
       - gymnasium
       - stable-baselines3[extra]
 
-      # Simulation (pybullet compiles from source on 3.12, needs gcc)
+      # Simulation: needs gcc + python3-dev (sudo apt install build-essential python3-dev)
       - git+https://github.com/learnsyslab/gym-pybullet-drones.git
 
       # Hugging Face
@@ -35,3 +40,8 @@ dependencies:
 
       # Optional experiment logging
       - wandb
+
+# Safety net: make conda's libs win over the system ones.
+# Once the test below passes without it, you can delete this block.
+variables:
+  LD_LIBRARY_PATH: $CONDA_PREFIX/lib:$LD_LIBRARY_PATH
