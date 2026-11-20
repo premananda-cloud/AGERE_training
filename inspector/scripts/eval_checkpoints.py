@@ -26,12 +26,12 @@ Rules:
   * Final saves are baseline arms, never selection candidates.
 
 Run from the AGERE repo root:
-    python inspector/scripts/eval_checkpoints.py init    --out results/evaluation/step2
-    python inspector/scripts/eval_checkpoints.py screen  --out results/evaluation/step2 --workers 12
-    python inspector/scripts/eval_checkpoints.py select  --out results/evaluation/step2 --workers 12
-    python inspector/scripts/eval_checkpoints.py choose  --out results/evaluation/step2
-    python inspector/scripts/eval_checkpoints.py report  --out results/evaluation/step2 --workers 12
-    python inspector/scripts/eval_checkpoints.py combine --out results/evaluation/step2
+    python inspector/scripts/eval_checkpoints.py init    --out results/final/chain_3x5_eval
+    python inspector/scripts/eval_checkpoints.py screen  --out results/final/chain_3x5_eval --workers 12
+    python inspector/scripts/eval_checkpoints.py select  --out results/final/chain_3x5_eval --workers 12
+    python inspector/scripts/eval_checkpoints.py choose  --out results/final/chain_3x5_eval
+    python inspector/scripts/eval_checkpoints.py report  --out results/final/chain_3x5_eval --workers 12
+    python inspector/scripts/eval_checkpoints.py combine --out results/final/chain_3x5_eval
 
 Check what `init` found (inventory.csv, printed counts) before running screen.
 Needs pandas for `combine` only.
@@ -117,15 +117,15 @@ def default_protocol(args, seeds: list[int], study_name: str) -> dict:
         "groups": {
             "chain": {"enabled": not args.no_chain, "training_seed": args.chain_seed,
                       "line_regex": args.chain_line},
-            "seedstudy": {"enabled": not args.no_seedstudy, "tag": args.seedstudy_tag,
+            "seedstudy": {"enabled": args.with_seedstudy, "tag": args.seedstudy_tag,
                           "training_seeds": seeds,
                           "expected_hparams": {"gamma": 0.995, "ent_coef": 0.003},
                           "expected_candidates_per_seed": 10},
         },
-        "screen": {"episodes_per_cell": 4, "base_seed": 10_000,
+        "screen": {"episodes_per_cell": args.screen_eps, "base_seed": 10_000,
                    "top_k": {"chain": args.top_k_chain, "seedstudy": args.top_k_seedstudy}},
-        "select": {"episodes_per_cell": 15, "base_seed": 20_000},
-        "report": {"episodes_per_cell": 20, "base_seed": 30_000, "scope": args.report_scope},
+        "select": {"episodes_per_cell": args.select_eps, "base_seed": 20_000},
+        "report": {"episodes_per_cell": args.report_eps, "base_seed": 30_000, "scope": args.report_scope},
         "selection_rule": (
             "Per unit (chain = one unit; seedstudy = one unit per training seed). Stage screen: rank the "
             "intermediate (candidate) checkpoints by overall crash rate on the balanced screen grid "
@@ -598,17 +598,20 @@ def main() -> None:
     sub = p.add_subparsers(dest="cmd", required=True)
 
     pi = sub.add_parser("init", help="freeze protocol and build the checkpoint inventory")
-    pi.add_argument("--out", default="results/evaluation/step2")
+    pi.add_argument("--out", default="results/final/chain_3x5_eval")
     pi.add_argument("--chain-seed", type=int, default=0)
     pi.add_argument("--chain-line", default=r"disturbance_3x5(?:_tiltfix\d*)?",
                     help="regex for the training tags that make up the cumulative line")
     pi.add_argument("--no-chain", action="store_true")
     pi.add_argument("--seedstudy-tag", default="seedstudy")
     pi.add_argument("--seedstudy-seeds", default="0-9", help='e.g. "0-9" or "0,1,2"')
-    pi.add_argument("--no-seedstudy", action="store_true")
+    pi.add_argument("--with-seedstudy", action="store_true", help="also evaluate the 10 seed-study seeds (off by default: compute)")
     pi.add_argument("--top-k-chain", type=int, default=10)
     pi.add_argument("--top-k-seedstudy", type=int, default=5)
-    pi.add_argument("--report-scope", choices=["all", "champions"], default="all",
+    pi.add_argument("--screen-eps", type=int, default=4, help="episodes per cell, screen stage")
+    pi.add_argument("--select-eps", type=int, default=15, help="episodes per cell, select stage")
+    pi.add_argument("--report-eps", type=int, default=20, help="episodes per cell, report stage")
+    pi.add_argument("--report-scope", choices=["all", "champions"], default="champions",
                     help="all = held-out eval of every checkpoint (performance-vs-step curves); "
                          "champions = only champions + final saves")
     pi.add_argument("--force", action="store_true")
@@ -616,17 +619,17 @@ def main() -> None:
 
     for name, fn in (("screen", cmd_screen), ("select", cmd_select), ("report", cmd_report)):
         sp = sub.add_parser(name)
-        sp.add_argument("--out", default="results/evaluation/step2")
+        sp.add_argument("--out", default="results/final/chain_3x5_eval")
         sp.add_argument("--workers", type=int, default=default_workers)
         sp.set_defaults(fn=fn)
 
     pc = sub.add_parser("choose", help="pick and freeze per-unit champions from select data")
-    pc.add_argument("--out", default="results/evaluation/step2")
+    pc.add_argument("--out", default="results/final/chain_3x5_eval")
     pc.add_argument("--force", action="store_true")
     pc.set_defaults(fn=cmd_choose)
 
     pm = sub.add_parser("combine", help="merge shards into tidy tables and summaries")
-    pm.add_argument("--out", default="results/evaluation/step2")
+    pm.add_argument("--out", default="results/final/chain_3x5_eval")
     pm.set_defaults(fn=cmd_combine)
 
     args = p.parse_args()
